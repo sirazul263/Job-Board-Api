@@ -1,11 +1,11 @@
 {
   "name": "shomvob-assigment-api",
   "version": "1.0.0",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "ls -R && node dist/server.js",
+    "start": "node dist/src/server.js",
     "test": "cross-env NODE_ENV=test jest"
   },
   "keywords": [],

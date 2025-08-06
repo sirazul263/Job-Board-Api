@@ -17,6 +17,21 @@ router.post(
         return res.status(404).json({ status: 0, message: "Job not found" });
       }
 
+      // Check if an application with the same email and jobId already exists
+      const existingApplication = await Application.findOne({
+        applicantEmail: req.body.applicantEmail,
+        jobId: req.body.jobId,
+      });
+
+      if (existingApplication) {
+        return res
+          .status(409) // Conflict
+          .json({
+            status: 0,
+            message: "You have already applied for this job.",
+          });
+      }
+
       const newApp = new Application(req.body);
       await newApp.save();
       res.status(201).json({

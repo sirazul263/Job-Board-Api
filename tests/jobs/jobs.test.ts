@@ -2,25 +2,25 @@ import request from "supertest";
 import app from "../../src/app";
 import { User } from "../../src/models/User";
 import { Job } from "../../src/models/Job";
+import { Application } from "../../src/models/Application";
 import jwt from "jsonwebtoken";
 import { SECRET } from "../../src/middleware/auth";
-import { connectDB, disconnectDB } from "../../src/config/db";
 
 let adminToken: string;
 let userToken: string;
 
 beforeAll(async () => {
-  await connectDB();
-  // Clean DB and seed users
+  // Clean entire DB before seeding
+  await Application.deleteMany({});
   await User.deleteMany({});
   await Job.deleteMany({});
 
-  const adminUser = new User({
+  // Create admin user
+  const adminUser = await User.create({
     username: "adminuser",
     password: "hashedpassword",
     isAdmin: true,
   });
-  await adminUser.save();
 
   adminToken = jwt.sign(
     { id: adminUser._id.toString(), isAdmin: adminUser.isAdmin },
@@ -29,12 +29,11 @@ beforeAll(async () => {
   );
 
   // Create normal user
-  const normalUser = new User({
+  const normalUser = await User.create({
     username: "normaluser",
     password: "hashedpassword",
     isAdmin: false,
   });
-  await normalUser.save();
 
   userToken = jwt.sign(
     { id: normalUser._id.toString(), isAdmin: normalUser.isAdmin },
@@ -44,7 +43,7 @@ beforeAll(async () => {
 });
 
 describe("Job routes", () => {
-  describe("GET /api/jobs - list all jobs", () => {
+  describe("GET /api/jobs - list all jobs (populated)", () => {
     beforeEach(async () => {
       await Job.deleteMany({});
       await Job.insertMany([
@@ -54,10 +53,6 @@ describe("Job routes", () => {
       ]);
     });
 
-    afterEach(async () => {
-      await Job.deleteMany({});
-    });
-
     it("should return a list of all jobs", async () => {
       const res = await request(app).get("/api/jobs");
 
@@ -65,7 +60,6 @@ describe("Job routes", () => {
       expect(res.body.status).toBe(1);
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.body.data.length).toBe(3);
-
       expect(res.body.data).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ title: "Dev" }),
@@ -74,10 +68,14 @@ describe("Job routes", () => {
         ])
       );
     });
+  });
+
+  describe("GET /api/jobs - list all jobs (empty)", () => {
+    beforeEach(async () => {
+      await Job.deleteMany({});
+    });
 
     it("should return an empty array if no jobs exist", async () => {
-      await Job.deleteMany({});
-
       const res = await request(app).get("/api/jobs");
 
       expect(res.status).toBe(200);
@@ -88,6 +86,10 @@ describe("Job routes", () => {
   });
 
   describe("POST /api/jobs - create job (admin only)", () => {
+    beforeEach(async () => {
+      await Job.deleteMany({});
+    });
+
     it("should return 401 if no token provided", async () => {
       const res = await request(app).post("/api/jobs").send({
         title: "Developer",
@@ -162,17 +164,13 @@ describe("Job routes", () => {
     let jobId: string;
 
     beforeEach(async () => {
-      const job = new Job({
+      await Job.deleteMany({});
+      const job = await Job.create({
         title: "Tester",
         company: "QA Corp",
         location: "Dhaka",
       });
-      await job.save();
       jobId = job._id.toString();
-    });
-
-    afterEach(async () => {
-      await Job.deleteMany({});
     });
 
     it("should get a job successfully", async () => {

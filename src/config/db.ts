@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 
-export const connectDB = async () => {
+export const connectDB = async (uri?: string) => {
   if (mongoose.connection.readyState >= 1) return;
 
-  const mongoUri = process.env.MONGO_URI;
+  const mongoUri = uri || process.env.MONGO_URI;
   if (!mongoUri) throw new Error("MONGO_URI environment variable not set");
 
   let tries = 3;
